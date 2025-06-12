@@ -1,40 +1,40 @@
-#!/bin/bash
-
+#!/usr/bin/env bash
 set -e
 
-# Цвета
-GREEN="\033[0;32m"
-RESET="\033[0m"
+# ------ ОБНОВЛЁННЫЙ install.sh ------
 
-echo -e "${GREEN}🔧 Установка Zsh и Oh My Zsh...${RESET}"
+# Установка Zsh, Oh My Zsh, плагинов и eza
 
-# 1. Установка Zsh (если не установлен)
-if ! command -v zsh &> /dev/null; then
-  echo -e "${GREEN}📦 Устанавливаем zsh...${RESET}"
+echo "🔧 Проверка и установка zsh..."
+if ! command -v zsh &>/dev/null; then
   if [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    sudo apt update && sudo apt install -y zsh curl git
+    sudo apt update
+    sudo apt install -y zsh curl git
   elif [[ "$OSTYPE" == "darwin"* ]]; then
-    brew install zsh
+    brew install zsh curl git
   else
-    echo "❌ Неизвестная ОС. Установи Zsh вручную."
+    echo "❌ Не удалось определить ОС для установки zsh."
     exit 1
   fi
-else
-  echo -e "${GREEN}✅ Zsh уже установлен.${RESET}"
 fi
 
-# 2. Установка Oh My Zsh (если не установлен)
+echo "🔧 Проверка и установка eza (modern ls)..."
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+  if ! command -v eza &>/dev/null; then
+    sudo apt update
+    sudo apt install -y eza || echo "⚠️ Пакет eza недоступен, установи вручную."
+  else
+    echo "✅ eza уже установлен."
+  fi
+fi
+
+echo "🔧 Установка Oh My Zsh..."
 if [ ! -d "$HOME/.oh-my-zsh" ]; then
-  echo -e "${GREEN}📥 Устанавливаем Oh My Zsh...${RESET}"
   sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-else
-  echo -e "${GREEN}✅ Oh My Zsh уже установлен.${RESET}"
 fi
 
-# 3. Путь к кастомным плагинам
+echo "🔌 Установка плагинов..."
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
-
-# 4. Список плагинов
 declare -A plugins=(
   [zsh-autosuggestions]="https://github.com/zsh-users/zsh-autosuggestions"
   [zsh-syntax-highlighting]="https://github.com/zsh-users/zsh-syntax-highlighting"
@@ -42,26 +42,30 @@ declare -A plugins=(
   [zsh-completions]="https://github.com/zsh-users/zsh-completions"
   [zsh-interactive-cd]="https://github.com/changyuheng/zsh-interactive-cd"
 )
-
-echo -e "${GREEN}🔌 Установка Zsh-плагинов...${RESET}"
-
 for plugin in "${!plugins[@]}"; do
-  plugin_dir="$ZSH_CUSTOM/plugins/$plugin"
-  repo_url="${plugins[$plugin]}"
-
-  if [ -d "$plugin_dir" ]; then
-    echo "🔁 $plugin уже установлен, обновляем..."
-    git -C "$plugin_dir" pull
+  dir="$ZSH_CUSTOM/plugins/$plugin"
+  if [ -d "$dir" ]; then
+    git -C "$dir" pull
   else
-    echo "📥 Устанавливаем $plugin..."
-    git clone "$repo_url" "$plugin_dir"
+    git clone "${plugins[$plugin]}" "$dir"
   fi
 done
 
-# 5. Сделать zsh оболочкой по умолчанию
+# Настройка .zshrc: включить алиас для eza
+ZSHRC="$HOME/.zshrc"
+if ! grep -q "alias ls='eza" "$ZSHRC"; then
+  cat << 'EOF' >> "$ZSHRC"
+
+# Использовать eza вместо ls
+if command -v eza &>/dev/null; then
+  alias ls='eza -la --icons --group-directories-first'
+fi
+EOF
+fi
+
+# Сделать zsh оболочкой по умолчанию
 if [ "$SHELL" != "$(which zsh)" ]; then
-  echo -e "${GREEN}🔄 Меняем оболочку на zsh по умолчанию...${RESET}"
   chsh -s "$(which zsh)"
 fi
 
-echo -e "${GREEN}✅ Установка завершена. Перезапусти терминал или введи 'zsh'.${RESET}"
+echo "🎉 Установка завершена! Перезапусти терминал или запусти 'zsh'."
