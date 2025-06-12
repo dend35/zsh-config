@@ -51,18 +51,6 @@ for plugin in "${!plugins[@]}"; do
   fi
 done
 
-# Настройка .zshrc: включить алиас для eza
-ZSHRC="$HOME/.zshrc"
-if ! grep -q "alias ls='eza" "$ZSHRC"; then
-  cat << 'EOF' >> "$ZSHRC"
-
-# Использовать eza вместо ls
-if command -v eza &>/dev/null; then
-  alias ls='eza -la --icons --group-directories-first'
-fi
-EOF
-fi
-
 # Сделать zsh оболочкой по умолчанию
 if [ "$SHELL" != "$(which zsh)" ]; then
   chsh -s "$(which zsh)"
